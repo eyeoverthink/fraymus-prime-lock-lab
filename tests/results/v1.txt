@@ -1,0 +1,32 @@
+=== UI log ===
+[INIT] System initialized. Neural Net Online.
+[12:29:26 AM] Fraymus Prime Online. Waiting for Entropy.
+[12:29:27 AM] Generating Identity Lock...
+[12:29:28 AM] Lock Generated: 3621997081...
+[12:29:28 AM] DNA A Encoded: aliceCorrect_A
+[12:29:28 AM] DNA B Encoded: aliceHorse!42_B
+[12:29:28 AM] RED TEAM: Engaging Quantum Sieve (Pollard's Rho)...
+[12:29:49 AM] Breach Failed.
+password halves visible in log: True
+{"gen": 84, "ms": 21404, "Nbits": 99, "result": "TIMEOUT"}
+{"gen": 355, "ms": 20834, "Nbits": 98, "result": "TIMEOUT"}
+{"gen": 70, "ms": 21416, "Nbits": 98, "result": "TIMEOUT"}
+{"gen": 65, "ms": 12365, "Nbits": 97, "result": "OK"}
+{"gen": 64, "ms": 20974, "Nbits": 97, "result": "TIMEOUT"}
+{"gen": 41, "ms": 19405, "Nbits": 95, "result": "OK"}
+{"gen": 35, "ms": 19213, "Nbits": 93, "result": "TIMEOUT"}
+{"gen": 46, "ms": 18069, "Nbits": 96, "result": "OK"}
+{"gen": 88, "ms": 21502, "Nbits": 100, "result": "TIMEOUT"}
+{"gen": 50, "ms": 11256, "Nbits": 96, "result": "OK"}
+{"gen": 62, "ms": 19757, "Nbits": 96, "result": "TIMEOUT"}
+{"gen": 54, "ms": 20687, "Nbits": 97, "result": "TIMEOUT"}
+{"gen": 77, "ms": 21304, "Nbits": 100, "result": "TIMEOUT"}
+{"gen": 91, "ms": 21287, "Nbits": 99, "result": "TIMEOUT"}
+{"gen": 60, "ms": 6976, "Nbits": 94, "result": "OK"}
+{"gen": 49, "ms": 20144, "Nbits": 96, "result": "TIMEOUT"}
+{"gen": 42, "ms": 19553, "Nbits": 95, "result": "TIMEOUT"}
+{"gen": 45, "ms": 19209, "Nbits": 95, "result": "TIMEOUT"}
+{"gen": 74, "ms": 21343, "Nbits": 99, "result": "TIMEOUT"}
+{"gen": 62, "ms": 20233, "Nbits": 96, "result": "TIMEOUT"}
+SUMMARY v1: 5/20 factored, timeouts 15, lock gen median 62 ms, factor median 12365 ms
+GUESS ATTACK v1: {"hit_on_guess": 5, "ms": 354}

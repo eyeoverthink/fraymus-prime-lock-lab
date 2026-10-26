@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRAYMUS PRIME v2: Semiprime Lock Lab</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Courier New', monospace; background: radial-gradient(circle at center, #050505 0%, #0a0a12 100%); color: #fff; min-height: 100vh; overflow-x: hidden; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+.brain-header { text-align: center; padding: 20px; background: rgba(20,20,20,0.8); border: 1px solid #4ecdc4; border-radius: 15px; box-shadow: 0 0 30px rgba(78,205,196,0.1); }
+h1 { font-size: 2em; letter-spacing: 2px; text-shadow: 0 0 10px rgba(78,205,196,0.8); }
+.sub-header { color: #4ecdc4; font-family: monospace; }
+.note { color: #888; font-size: 0.8em; margin-top: 8px; font-family: monospace; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+.metric-card { background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 8px; padding: 10px; text-align: center; }
+.metric-val { font-size: 1.5em; font-weight: bold; color: #4ecdc4; font-family: monospace; }
+.metric-lbl { font-size: 0.8em; color: #888; text-transform: uppercase; }
+.vis-container { position: relative; height: 300px; background: #000; border: 2px solid #333; border-radius: 10px; overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+.teams-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.team-panel { padding: 20px; border-radius: 10px; background: rgba(10,10,10,0.8); border-left: 5px solid #fff; }
+.blue-team { border-color: #44aaff; } .red-team { border-color: #ff4444; } .gold-team { border-color: #ffaa00; }
+.panel-title { font-weight: bold; margin-bottom: 15px; font-family: monospace; font-size: 1.1em; }
+.blue-team .panel-title { color: #44aaff; } .red-team .panel-title { color: #ff4444; } .gold-team .panel-title { color: #ffaa00; }
+input, select, textarea { width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 10px; margin-bottom: 10px; font-family: monospace; }
+textarea { height: 90px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: #fff; outline: none; }
+label { display: block; color: #888; font-size: 0.75em; margin-bottom: 4px; text-transform: uppercase; }
+button { width: 100%; padding: 12px; border: none; font-weight: bold; cursor: pointer; font-family: monospace; text-transform: uppercase; transition: 0.2s; color: #fff; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-blue { background: linear-gradient(90deg, #2266aa, #44aaff); }
+.btn-red { background: linear-gradient(90deg, #aa2222, #ff4444); }
+.btn-gold { background: linear-gradient(90deg, #aa6600, #ffaa00); }
+button:not(:disabled):hover { filter: brightness(1.2); letter-spacing: 2px; }
+.out { margin-top: 10px; font-family: monospace; font-size: 0.8em; word-break: break-all; }
+#blueOutput { color: #44aaff; } #redOutput { color: #ff4444; } #goldOutput { color: #ffaa00; }
+.log-area { background: #000; border: 1px solid #4ecdc4; border-radius: 10px; height: 220px; padding: 15px; overflow-y: auto; font-family: monospace; font-size: 0.9em; }
+.log-entry { margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px solid #222; }
+.log-time { color: #666; margin-right: 10px; }
+.log-msg { color: #ccc; } .log-success { color: #00ff00; } .log-warn { color: #ffaa00; } .log-fail { color: #ff4444; } .log-purple { color: #d044ff; font-weight: bold; }
+@media (max-width: 1000px) { .teams-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="brain-header">
+    <h1>FRAYMUS PRIME v2</h1>
+    <div class="sub-header">SEMIPRIME LOCK LAB // HASH-TO-PRIME // CLASSICAL FACTORING</div>
+    <div class="note">Teaching demo: why small semiprimes and fast password hashes are weak. Not a password store. Everything runs locally in this tab; nothing you type is logged or sent.</div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="metric-val" id="m_bits">40</div><div class="metric-lbl">Bits per prime</div></div>
+    <div class="metric-card"><div class="metric-val" id="m_locks">0</div><div class="metric-lbl">Locks made</div></div>
+    <div class="metric-card"><div class="metric-val" id="m_broken">0 / 0</div><div class="metric-lbl">Factored / tried</div></div>
+    <div class="metric-card"><div class="metric-val" id="m_last">-</div><div class="metric-lbl">Last factor time</div></div>
+  </div>
+
+  <div class="vis-container"><canvas id="brainCanvas"></canvas></div>
+
+  <div class="teams-grid">
+    <div class="team-panel blue-team">
+      <div class="panel-title">BLUE TEAM: MAKE LOCK</div>
+      <input type="text" id="blueUser" placeholder="Username" autocomplete="off">
+      <input type="password" id="bluePass" placeholder="Password (test value only)" autocomplete="new-password">
+      <label for="bits">Prime size (lock N is about twice this)</label>
+      <select id="bits">
+        <option value="32">32-bit primes (instant)</option>
+        <option value="40" selected>40-bit primes (about a second)</option>
+        <option value="48">48-bit primes (tens of seconds)</option>
+        <option value="56">56-bit primes (often exceeds the budget)</option>
+        <option value="64">64-bit primes (will not finish in a browser)</option>
+      </select>
+      <button class="btn-blue" id="btnBlue" onclick="system.runBlueTeam()">GENERATE LOCK</button>
+      <div class="out" id="blueOutput"></div>
+    </div>
+
+    <div class="team-panel red-team">
+      <div class="panel-title">RED TEAM: FACTOR THE LOCK</div>
+      <input type="text" id="redInput" placeholder="Lock N" readonly>
+      <label for="budget">Step budget</label>
+      <select id="budget">
+        <option value="10000000">10 million steps</option>
+        <option value="50000000" selected>50 million steps</option>
+        <option value="200000000">200 million steps</option>
+      </select>
+      <button class="btn-red" id="btnRed" onclick="system.runRedTeam()">FACTOR (POLLARD RHO, BRENT)</button>
+      <div class="out" id="redOutput">No lock yet.</div>
+    </div>
+
+    <div class="team-panel gold-team">
+      <div class="panel-title">GOLD TEAM: GUESS THE PASSWORD</div>
+      <label for="guesses">Candidate passwords, one per line</label>
+      <textarea id="guesses" placeholder="password&#10;letmein&#10;123456"></textarea>
+      <button class="btn-gold" id="btnGold" onclick="system.runGoldTeam()">RUN GUESSES (NO FACTORING)</button>
+      <div class="out" id="goldOutput">Rebuilds the lock from each guess and compares it to N.</div>
+    </div>
+  </div>
+
+  <div class="log-area" id="systemLog">
+    <div class="log-entry"><span class="log-time">[INIT]</span> <span class="log-msg">Page loaded. Credentials are never written to this log.</span></div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// MATH ENGINE (pure, exposed as window.FP for testing)
+// ============================================
+const FP = (() => {
+  const enc = new TextEncoder();
+  const SMALL_PRIMES = [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n,41n];
+
+  async function sha256Big(text) {
+    const buf = await crypto.subtle.digest('SHA-256', enc.encode(text));
+    let hex = '';
+    for (const b of new Uint8Array(buf)) hex += b.toString(16).padStart(2, '0');
+    return BigInt('0x' + hex);
+  }
+
+  function modPow(b, e, m) {
+    let r = 1n; b %= m;
+    while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; }
+    return r;
+  }
+
+  // Miller-Rabin with the first 13 prime bases: deterministic for n < 3.3e24 (about 2^81).
+  function isPrime(n) {
+    if (n < 2n) return false;
+    for (const p of SMALL_PRIMES) { if (n === p) return true; if (n % p === 0n) return false; }
+    let d = n - 1n, s = 0;
+    while ((d & 1n) === 0n) { d >>= 1n; s++; }
+    outer: for (const a of SMALL_PRIMES) {
+      let x = modPow(a, d, n);
+      if (x === 1n || x === n - 1n) continue;
+      for (let i = 1; i < s; i++) { x = x * x % n; if (x === n - 1n) continue outer; }
+      return false;
+    }
+    return true;
+  }
+
+  // Top `bits` of SHA-256, top and bottom bit forced on, then next prime.
+  async function hashToPrime(text, bits) {
+    const B = BigInt(bits);
+    let p = ((await sha256Big(text)) >> (256n - B)) | (1n << (B - 1n)) | 1n;
+    while (!isPrime(p)) p += 2n;
+    return p;
+  }
+
+  // Each prime is derived from the full password, so a recovered factor
+  // does not split the password into two independently guessable halves.
+  async function makeLock(user, pass, bits) {
+    const a = await hashToPrime('fraymus-prime-v2|A|' + user + '|' + pass, bits);
+    const b = await hashToPrime('fraymus-prime-v2|B|' + user + '|' + pass, bits);
+    return { a, b, N: a * b };
+  }
+
+  function gcd(a, b) { while (b) { [a, b] = [b, a % b]; } return a; }
+  const absDiff = (x, y) => x > y ? x - y : y - x;
+  const yieldUI = () => new Promise(r => setTimeout(r, 0));
+
+  // Pollard rho, Brent's cycle detection with batched gcd. Classical, not quantum.
+  async function brentRho(n, maxSteps, onProgress) {
+    for (const p of SMALL_PRIMES) if (n % p === 0n && n !== p) return { factor: p, steps: 0 };
+    if (isPrime(n)) return { factor: null, steps: 0, reason: 'N is prime' };
+    const M = 256;
+    let steps = 0, nextYield = 200000;
+    for (let attempt = 0; attempt < 16 && steps < maxSteps; attempt++) {
+      const c = BigInt(2 * attempt + 1);
+      const f = v => (v * v + c) % n;
+      let y = BigInt(attempt + 2), x = y, ys = y, q = 1n, g = 1n, r = 1;
+      while (g === 1n && steps < maxSteps) {
+        x = y;
+        for (let i = 0; i < r; i++) y = f(y);
+        steps += r;
+        let k = 0;
+        while (k < r && g === 1n) {
+          ys = y;
+          const lim = Math.min(M, r - k);
+          for (let i = 0; i < lim; i++) { y = f(y); q = q * absDiff(x, y) % n; }
+          g = gcd(q, n);
+          k += lim; steps += lim;
+          if (steps >= nextYield) { nextYield += 200000; if (onProgress) onProgress(steps); await yieldUI(); }
+          if (steps >= maxSteps) break;
+        }
+        r *= 2;
+      }
+      if (g === n) {
+        do { ys = f(ys); g = gcd(absDiff(x, ys), n); steps++; } while (g === 1n);
+      }
+      if (g !== 1n && g !== n) return { factor: g, steps };
+    }
+    return { factor: null, steps, reason: 'step budget exhausted' };
+  }
+
+  // Expected rho steps to find prime factor p: about sqrt(pi * p / 2).
+  const expectedSteps = bits => Math.sqrt(Math.PI / 2 * 2 ** bits);
+
+  function rule30Step(cells) {
+    const n = cells.length, next = new Array(n);
+    for (let x = 0; x < n; x++) {
+      const idx = (cells[(x - 1 + n) % n] << 2) | (cells[x] << 1) | cells[(x + 1) % n];
+      next[x] = (30 >> idx) & 1;
+    }
+    return next;
+  }
+
+  return { sha256Big, isPrime, hashToPrime, makeLock, brentRho, expectedSteps, rule30Step };
+})();
+window.FP = FP;
+
+// ============================================
+// UI
+// ============================================
+class FraymusSystem {
+  constructor() {
+    this.state = { user: null, a: null, b: null, N: null, bits: 40, locks: 0, tried: 0, broken: 0, busy: false };
+    this.canvas = document.getElementById('brainCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+    this.neurons = [];
+    this.initNeurons();
+    this.animate();
+    document.getElementById('bits').addEventListener('change', e => { document.getElementById('m_bits').innerText = e.target.value; });
+    this.log('Ready. Make a lock, then try both attacks.');
+  }
+
+  resize() { this.canvas.width = this.canvas.offsetWidth; this.canvas.height = this.canvas.offsetHeight; }
+
+  log(msg, type = 'log-msg') {
+    const logDiv = document.getElementById('systemLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    const t = document.createElement('span'); t.className = 'log-time'; t.textContent = `[${new Date().toLocaleTimeString()}]`;
+    const m = document.createElement('span'); m.className = type; m.textContent = msg;
+    entry.append(t, ' ', m);
+    logDiv.appendChild(entry);
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
+
+  setBusy(b) { this.state.busy = b; for (const id of ['btnBlue', 'btnRed', 'btnGold']) document.getElementById(id).disabled = b; }
+  fmtMs(ms) { return ms < 1000 ? `${ms.toFixed(0)} ms` : `${(ms / 1000).toFixed(2)} s`; }
+  updateMetrics() {
+    document.getElementById('m_locks').innerText = this.state.locks;
+    document.getElementById('m_broken').innerText = `${this.state.broken} / ${this.state.tried}`;
+  }
+
+  async runBlueTeam() {
+    if (this.state.busy) return;
+    const userEl = document.getElementById('blueUser'), passEl = document.getElementById('bluePass');
+    const u = userEl.value, p = passEl.value;
+    if (!u || !p) return alert('Username and password required.');
+    const bits = +document.getElementById('bits').value;
+    this.setBusy(true);
+    try {
+      await this.renderEntropy(await FP.sha256Big('fraymus-prime-v2|viz|' + u + '|' + p));
+      const t0 = performance.now();
+      const { a, b, N } = await FP.makeLock(u, p, bits);
+      const ms = performance.now() - t0;
+      passEl.value = '';
+      Object.assign(this.state, { user: u, a, b, N, bits });
+      this.state.locks++;
+      this.updateMetrics();
+      document.getElementById('redInput').value = N.toString();
+      document.getElementById('blueOutput').innerHTML = '';
+      document.getElementById('blueOutput').append(
+        `LOCK N = ${N}`, document.createElement('br'),
+        `${N.toString(2).length}-bit semiprime from two ${bits}-bit primes, made in ${this.fmtMs(ms)}. Password field cleared.`);
+      document.getElementById('redOutput').innerText = `Expected about ${(FP.expectedSteps(bits) / 1e6).toFixed(1)} million rho steps.`;
+      this.log(`Lock made: ${N.toString(2).length}-bit N from two ${bits}-bit primes (${this.fmtMs(ms)}).`, 'log-success');
+    } finally { this.setBusy(false); }
+  }
+
+  async runRedTeam() {
+    if (this.state.busy) return;
+    const input = document.getElementById('redInput').value;
+    if (!input) return alert('Make a lock first.');
+    const N = BigInt(input), budget = +document.getElementById('budget').value;
+    const out = document.getElementById('redOutput');
+    this.setBusy(true);
+    this.log(`RED: Pollard rho (Brent) on ${N.toString(2).length}-bit N, budget ${(budget / 1e6).toFixed(0)}M steps.`, 'log-fail');
+    try {
+      const t0 = performance.now();
+      const res = await FP.brentRho(N, budget, s => {
+        out.innerText = `Working... ${(s / 1e6).toFixed(1)}M steps, ${this.fmtMs(performance.now() - t0)}`;
+        this.neurons.forEach(n => { if (Math.random() > 0.9) n.active = 1.0; });
+      });
+      const ms = performance.now() - t0;
+      this.state.tried++;
+      document.getElementById('m_last').innerText = this.fmtMs(ms);
+      if (res.factor) {
+        this.state.broken++;
+        const f = res.factor, co = N / f;
+        out.innerHTML = '';
+        out.append(`FACTORED in ${this.fmtMs(ms)} (${(res.steps / 1e6).toFixed(2)}M steps)`, document.createElement('br'),
+          `${f} x ${co}`);
+        this.log(`RED: factored in ${this.fmtMs(ms)}, ${(res.steps / 1e6).toFixed(2)}M steps. ${f} x ${co} = N: ${f * co === N}.`, 'log-fail');
+        this.checkFactor(f, N);
+      } else {
+        out.innerText = `Not factored: ${res.reason} after ${(res.steps / 1e6).toFixed(1)}M steps (${this.fmtMs(ms)}).`;
+        this.log(`RED: not factored (${res.reason}).`, 'log-warn');
+      }
+      this.updateMetrics();
+    } finally { this.setBusy(false); }
+  }
+
+  checkFactor(f, N) {
+    const { a, b } = this.state;
+    if (N !== this.state.N) { this.log('CHECK: N was not made in this session; nothing to compare against.', 'log-warn'); return; }
+    if (f === a || f === b) {
+      this.log(`CHECK: factor matches stored prime ${f === a ? 'A' : 'B'}. This does not recover the password; SHA-256 is one-way.`, 'log-purple');
+      this.flashCoherence();
+    } else {
+      this.log('CHECK: factor does not match either stored prime.', 'log-fail');
+    }
+  }
+
+  async runGoldTeam() {
+    if (this.state.busy) return;
+    if (!this.state.N) return alert('Make a lock first.');
+    const guesses = document.getElementById('guesses').value.split('\n').filter(g => g.length);
+    if (!guesses.length) return alert('Enter at least one guess.');
+    const out = document.getElementById('goldOutput');
+    this.setBusy(true);
+    try {
+      const t0 = performance.now();
+      let hit = -1;
+      for (let i = 0; i < guesses.length; i++) {
+        const { N } = await FP.makeLock(this.state.user, guesses[i], this.state.bits);
+        if (N === this.state.N) { hit = i; break; }
+        if (i % 20 === 19) await new Promise(r => setTimeout(r, 0));
+      }
+      const tried = hit >= 0 ? hit + 1 : guesses.length;
+      const ms = performance.now() - t0;
+      const msg = hit >= 0
+        ? `MATCH on guess #${hit + 1} of ${guesses.length}, ${this.fmtMs(ms)} (${(ms / tried).toFixed(2)} ms per guess). No factoring needed.`
+        : `No match in ${tried} guesses, ${this.fmtMs(ms)} (${(ms / tried).toFixed(2)} ms per guess).`;
+      out.innerText = msg + ' Real password storage uses a deliberately slow hash (Argon2, scrypt, PBKDF2) to make each guess expensive.';
+      this.log('GOLD: ' + msg, hit >= 0 ? 'log-fail' : 'log-warn');
+    } finally { this.setBusy(false); }
+  }
+
+  // ============================================
+  // VISUALS
+  // ============================================
+  initNeurons() {
+    const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+    for (let i = 0; i < 60; i++) {
+      this.neurons.push({ x: cx + (Math.random() - 0.5) * this.canvas.width * 0.8, y: cy + (Math.random() - 0.5) * this.canvas.height * 0.8,
+        vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, active: 0 });
+    }
+  }
+
+  // Rule 30 cellular automaton seeded from a SHA-256 digest (decoration only).
+  async renderEntropy(seedBig) {
+    const bin = seedBig.toString(2).padStart(256, '0');
+    const ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
+    const cols = 200, cellW = w / cols, rows = Math.floor(h / cellW);
+    let cells = Array.from({ length: cols }, (_, i) => +bin[i % 256]);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (cells[x]) { ctx.fillStyle = Math.random() > 0.8 ? '#ffffff' : '#4ecdc4'; ctx.fillRect(x * cellW, y * cellW, cellW, cellW); }
+      }
+      cells = FP.rule30Step(cells);
+      if (y % 5 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  flashCoherence() { this.neurons.forEach(n => n.active = 1.0); }
+
+  animate() {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < this.neurons.length; i++) {
+      const n = this.neurons[i];
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > this.canvas.width) n.vx *= -1;
+      if (n.y < 0 || n.y > this.canvas.height) n.vy *= -1;
+      n.active *= 0.95;
+      if (Math.random() > 0.99) n.active = 1.0;
+      ctx.beginPath(); ctx.fillStyle = `rgba(78, 205, 196, ${0.3 + n.active})`;
+      ctx.arc(n.x, n.y, 2 + n.active * 3, 0, Math.PI * 2); ctx.fill();
+      for (let j = i + 1; j < this.neurons.length; j++) {
+        const n2 = this.neurons[j], dist = Math.hypot(n.x - n2.x, n.y - n2.y);
+        if (dist < 100) {
+          ctx.beginPath(); ctx.strokeStyle = `rgba(78, 205, 196, ${(1 - dist / 100) * (n.active || 0.1)})`;
+          ctx.moveTo(n.x, n.y); ctx.lineTo(n2.x, n2.y); ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(() => this.animate());
+  }
+}
+
+const system = new FraymusSystem();
+window.system = system;
+</script>
+</body>
+</html>

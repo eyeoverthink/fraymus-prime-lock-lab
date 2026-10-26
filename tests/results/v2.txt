@@ -1,0 +1,26 @@
+isPrime: tested 3010 primes found 262 mismatches vs Python 0
+rule30 50 rows match Python reference: True
+hashToPrime 32: bit lengths [32]
+hashToPrime 40: bit lengths [40]
+hashToPrime 48: bit lengths [48]
+hashToPrime 56: bit lengths [56]
+hashToPrime 64: bit lengths [64]
+hashToPrime non-primes (Python check): 0
+password field after lock: ''
+=== UI LOG ===
+[INIT] Page loaded. Credentials are never written to this log.
+[12:28:12 AM] Ready. Make a lock, then try both attacks.
+[12:28:13 AM] Lock made: 79-bit N from two 40-bit primes (1 ms).
+[12:28:13 AM] RED: Pollard rho (Brent) on 79-bit N, budget 50M steps.
+[12:28:14 AM] RED: factored in 291 ms, 1.02M steps. 578741655227 x 665588094037 = N: true.
+[12:28:14 AM] CHECK: factor matches stored prime A. This does not recover the password; SHA-256 is one-way.
+[12:28:14 AM] GOLD: MATCH on guess #5 of 5, 15 ms (2.90 ms per guess). No factoring needed.
+RED: FACTORED in 291 ms (1.02M steps)
+578741655227 x 665588094037
+GOLD: MATCH on guess #5 of 5, 15 ms (2.90 ms per guess). No factoring needed. Real password storage uses a deliberately slow hash (Argon2, scrypt, PBKDF2) to make each guess expensive.
+password text anywhere on page: False | 'Correct' substring: False | username in log: False
+BATCH 32-bit primes: 20/20 factored, median 8 ms, max 20 ms, median steps 0.10M (expected 0.08M), lock gen median 0.4 ms
+BATCH 40-bit primes: 20/20 factored, median 386 ms, max 921 ms, median steps 1.58M (expected 1.31M), lock gen median 1.8 ms
+BATCH 48-bit primes: 10/10 factored, median 7673 ms, max 13471 ms, median steps 26.84M (expected 21.03M), lock gen median 1.8 ms
+Guess cost at 40-bit: 0.18 ms per guess
+JS errors: []
